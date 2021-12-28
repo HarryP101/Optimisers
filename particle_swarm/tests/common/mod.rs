@@ -1,16 +1,19 @@
 use particle_swarm::MeritFunction;
+use particle_swarm::Termination;
+use particle_swarm::PSConfig;
 
-pub struct PSConfig;
+pub struct ClientMerit;
+pub struct ClientTermination;
 
-impl MeritFunction for PSConfig {
+impl MeritFunction for ClientMerit {
     fn calculate(&self) -> f64 {
         0.0
     }
 }
 
-impl PSConfig {
-    pub fn new() -> PSConfig {
-        PSConfig
+impl Termination for ClientTermination {
+    fn should_stop(&self) -> bool {
+        true
     }
 }
  

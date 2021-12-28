@@ -1,10 +1,18 @@
 use particle_swarm;
+use particle_swarm::PSConfig;
+use common::ClientMerit;
+use common::ClientTermination;
 
 mod common;
 
 #[test]
 fn it_works() {
-    let config = Box::new(common::PSConfig::new());
+    let num_iters = 1;
+    let num_particles = 1;
+    let merit = Box::new(ClientMerit);
+    let termination = Box::new(ClientTermination);
+
+    let config = PSConfig::new(num_iters, num_particles, merit, termination);
 
     let expected = 0.0;
     let unexpected = 1.0;
