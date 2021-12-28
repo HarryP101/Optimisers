@@ -1,5 +1,7 @@
 use std::error::Error;
 
+mod particle;
+
 pub struct PSConfig 
 {
     num_iters: u32,
