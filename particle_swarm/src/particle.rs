@@ -1,4 +1,4 @@
-struct Particle {
+pub struct Particle {
     position: Vec<f64>,
     velocity: Vec<f64>,
     local_best: f64,
@@ -6,17 +6,19 @@ struct Particle {
 }
 
 impl Particle {
-    pub fn new() -> Particle {
-        let position: Vec<f64> = Vec::new();
-        let velocity: Vec<f64> = Vec::new();
+    pub fn new(num_dimensions: usize) -> Particle {
+        let position: Vec<f64> = vec![0.0; num_dimensions];
+        let velocity: Vec<f64> = vec![1.0; num_dimensions];
         let local_best = 0.0;
         let global_best = 0.0;
         Particle { position, velocity, local_best, global_best }
     }
 
     pub fn update_pos(&mut self) {
-        for i in 0..self.position.len() {
-            self.position[i] += self.velocity[i];
+        for it in self.position.iter_mut().zip(self.velocity.iter())
+        {
+            let (xi, vi) = it;
+            *xi += *vi;
         }
     }
 
@@ -24,26 +26,41 @@ impl Particle {
 
     }
 
-    pub fn apply_merit_fn<T, F>(&mut self, merit: F)
-    where 
-        F: Fn(&Vec<f64>) -> f64
-    {
-        self.local_best = merit(&self.position);
+    pub fn get_position(&self) -> &Vec<f64> {
+        &self.position
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+
     #[test]
     fn initialise_particle() {
-        assert_eq!(1, 1);
+        let num_dimensions = 3;
+        let particle = Particle::new(num_dimensions);
+        let expected: Vec<f64> = vec![0.0; num_dimensions];
+        assert_eq!(&expected, particle.get_position());
     }
 
     fn update_pos_works() {
-        assert_eq!(1, 1);
+        let num_dimensions = 3;
+        let mut particle = Particle::new(num_dimensions);
+        let expected: Vec<f64> = vec![1.0; num_dimensions];
+        
+        particle.update_pos();
+
+        assert_eq!(&expected, particle.get_position());
     }
 
     fn update_vel_works() {
-        assert_eq!(1, 1);
+        let num_dimensions = 3;
+        let mut particle = Particle::new(num_dimensions);
+        let expected: Vec<f64> = vec![1.0; num_dimensions];
+        
+        particle.update_vel();
+        particle.update_pos();
+
+        assert_eq!(&expected, particle.get_position());
     }
 }

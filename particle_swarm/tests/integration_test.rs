@@ -9,10 +9,11 @@ mod common;
 fn it_works() {
     let num_iters = 1;
     let num_particles = 1;
+    let num_dimensions = 1;
     let merit = Box::new(ClientMerit);
     let termination = Box::new(ClientTermination);
 
-    let config = PSConfig::new(num_iters, num_particles, merit, termination);
+    let config = PSConfig::new(num_iters, num_particles, num_dimensions, merit, termination);
 
     let expected = 0.0;
     let unexpected = 1.0;
