@@ -39,7 +39,7 @@ pub fn run(config: PSConfig) -> Result<f64, Box<dyn Error>> {
     let mut merit = 0.0;
 
     // TODO: Put this into a swarm struct
-    let mut best_swarm_pos = 0.0;
+    let mut best_swarm_merit = 0.0;
     let mut swarm: Vec<Particle> = Vec::with_capacity(config.num_particles);
 
     // Create the swarm of particles
@@ -52,12 +52,20 @@ pub fn run(config: PSConfig) -> Result<f64, Box<dyn Error>> {
     for _ in 0..config.num_iters {
 
         for particle in &mut swarm {
+            particle.update_position();
+
+            particle.update_velocity();
+
             merit = config.merit.calculate(particle.get_position());
 
-            particle.update_vel();
-    
-            particle.update_pos();
+            if merit < particle.get_best_merit() {
+                particle.set_best_merit(merit);
 
+                if particle.get_best_merit() < best_swarm_merit {
+                    best_swarm_merit = particle.get_best_merit();
+                }
+            }
+            
             if config.termination.should_stop(merit) {
                 break;
             }

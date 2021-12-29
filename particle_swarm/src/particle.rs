@@ -1,11 +1,13 @@
 use crate::SearchSpace;
 use rand::Rng;
+use itertools::izip;
 
 pub struct Particle {
     position: Vec<f64>,
     velocity: Vec<f64>,
     local_best: Vec<f64>,
     global_best: Vec<f64>,
+    local_best_merit: f64,
 }
 
 impl Particle {
@@ -24,7 +26,7 @@ impl Particle {
 
             let v_lower = -(x_upper - x_lower).abs();
             let v_upper = (x_upper - x_lower).abs();
-            let vi = rand::thread_rng().gen_range(v_lower..v_upper);
+            let vi: f64 = rand::thread_rng().gen_range(v_lower..v_upper);
 
             velocity.push(vi);
         }
@@ -32,22 +34,41 @@ impl Particle {
         let local_best = position.clone();
         let global_best = vec![0.0; num_dimensions];
 
-        Particle { position, velocity, local_best, global_best }
+        let local_best_merit = f64::INFINITY;
+
+        Particle { position, velocity, local_best, global_best, local_best_merit }
     }
 
-    pub fn update_pos(&mut self) {
+    pub fn update_position(&mut self) {
         for it in self.position.iter_mut().zip(self.velocity.iter()) {
             let (xi, vi) = it;
             *xi += *vi;
         }
     }
 
-    pub fn update_vel(&mut self) {
+    pub fn update_velocity(&mut self) {
+        for (xi, vi, pi, gi) in izip!(&self.position,
+                                    &mut self.velocity,
+                                    &self.local_best,
+                                    &self.global_best)
+        {
+            let rp: f64 = rand::thread_rng().gen_range(0.0..1.0);
+            let rg: f64 = rand::thread_rng().gen_range(0.0..1.0);
 
+            *vi += rp * (pi - xi) + rg * (gi - xi);
+        }
     }
 
     pub fn get_position(&self) -> &Vec<f64> {
         &self.position
+    }
+
+    pub fn get_best_merit(&self) -> f64 {
+        self.local_best_merit
+    }
+
+    pub fn set_best_merit(&mut self, merit: f64) {
+        self.local_best_merit = merit;
     }
 }
 
@@ -74,7 +95,7 @@ mod tests {
         let mut particle = Particle::new(num_dimensions, &search_space);
         let expected = 3;
         
-        particle.update_pos();
+        particle.update_position();
 
         assert_eq!(expected, particle.get_position().len());
     }
@@ -87,8 +108,8 @@ mod tests {
         let mut particle = Particle::new(num_dimensions, &search_space);
         let expected = 3;
         
-        particle.update_vel();
-        particle.update_pos();
+        particle.update_velocity();
+        particle.update_position();
 
         assert_eq!(expected, particle.get_position().len());
     }
