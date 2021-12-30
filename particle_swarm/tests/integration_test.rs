@@ -7,7 +7,7 @@ mod common;
 
 #[test]
 fn it_works() {
-    let num_iters = 10;
+    let num_iters = 100;
     let num_particles = 10;
     let num_dimensions = 1;
     let lower = vec![-1.0];

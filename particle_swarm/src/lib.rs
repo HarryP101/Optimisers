@@ -1,5 +1,7 @@
 use std::error::Error;
 use crate::particle::Particle;
+use std::cell::RefCell;
+use std::rc::Rc;
 
 mod particle;
 
@@ -40,12 +42,25 @@ pub fn run(config: PSConfig) -> Result<f64, Box<dyn Error>> {
 
     // TODO: Put this into a swarm struct
     let mut best_swarm_merit = f64::INFINITY;
-    let mut best_swarm_position: Vec<f64> = Vec::with_capacity(config.num_dimensions);
+
+    // Shared ownership of best swarm position across entire swarm
+    let best_swarm_position: Rc<RefCell<Vec<f64>>> 
+        = Rc::new(RefCell::new(Vec::with_capacity(config.num_dimensions)));
+
     let mut swarm: Vec<Particle> = Vec::with_capacity(config.num_particles);
 
     // Create the swarm of particles
     for _ in 0..config.num_particles {
-        let particle = particle::Particle::new(config.num_dimensions, &config.search_space);
+
+        let particle = Particle::new(config.num_dimensions,
+            &config.search_space,
+            Rc::clone(&best_swarm_position));
+
+        merit = config.merit.calculate(&particle.position);
+
+        if merit < best_swarm_merit {
+            *best_swarm_position.borrow_mut() = particle.position.clone();
+        }
         swarm.push(particle);
     }
     
@@ -53,14 +68,11 @@ pub fn run(config: PSConfig) -> Result<f64, Box<dyn Error>> {
 
         for particle in &mut swarm {
 
-            // TODO: Some refactoring needed with this function call
-            particle.set_global_best_position(&best_swarm_position);
-
             particle.update_position();
 
             particle.update_velocity();
     
-            merit = config.merit.calculate(&particle.get_position());
+            merit = config.merit.calculate(&particle.position);
     
             if merit < particle.get_best_merit() {
                 particle.set_best_merit(merit);
@@ -68,7 +80,7 @@ pub fn run(config: PSConfig) -> Result<f64, Box<dyn Error>> {
     
                 if particle.get_best_merit() < best_swarm_merit {
                     best_swarm_merit = particle.get_best_merit();
-                    best_swarm_position = particle.get_position().clone();
+                    *best_swarm_position.borrow_mut() = particle.position.clone();
                 }
             }
     
