@@ -7,7 +7,7 @@ mod common;
 
 #[test]
 fn it_works() {
-    let num_iters = 10000;
+    let num_iters = 10;
     let num_particles = 10;
     let num_dimensions = 1;
     let lower = vec![-1.0];
@@ -26,6 +26,6 @@ fn it_works() {
         }
     };
     println!("the final value is: {}", result);
-    assert!(1.5 > result);
-    assert!(0.5 < result);
+    assert!(1.1 > result);
+    assert!(0.9 < result);
 }

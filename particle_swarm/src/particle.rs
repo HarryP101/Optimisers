@@ -32,7 +32,7 @@ impl Particle {
         }
 
         let local_best = position.clone();
-        let global_best = vec![0.0; num_dimensions];
+        let global_best = position.clone();
 
         let local_best_merit = f64::INFINITY;
 
@@ -60,8 +60,8 @@ impl Particle {
         }
     }
 
-    pub fn get_position(&self) -> &Vec<f64> {
-        &self.position
+    pub fn get_position(&self) -> Vec<f64> {
+        self.position.clone()
     }
 
     pub fn get_best_merit(&self) -> f64 {
@@ -70,6 +70,14 @@ impl Particle {
 
     pub fn set_best_merit(&mut self, merit: f64) {
         self.local_best_merit = merit;
+    }
+
+    pub fn set_global_best_position(&mut self, pos: &Vec<f64>) {
+        self.global_best = pos.clone();
+    }
+
+    pub fn set_local_best_position(&mut self) {
+        self.local_best = self.position.clone();
     }
 }
 
