@@ -7,13 +7,19 @@ pub struct ClientTermination;
 
 impl MeritFunction for ClientMerit {
     fn calculate(&self, data: &Vec<f64>) -> f64 {
-        0.0
+        // Minimise the function x^2 + 1;
+        1.0 + data[0] * data[0]
     }
 }
 
 impl Termination for ClientTermination {
     fn should_stop(&self, merit: f64) -> bool {
-        true
+        if merit == 1.0 {
+            true
+        }
+        else {
+            false
+        }
     }
 }
  

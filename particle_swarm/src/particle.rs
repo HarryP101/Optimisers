@@ -54,8 +54,9 @@ impl Particle {
         {
             let rp: f64 = rand::thread_rng().gen_range(0.0..1.0);
             let rg: f64 = rand::thread_rng().gen_range(0.0..1.0);
+            let w: f64 = 0.9;
 
-            *vi += rp * (pi - xi) + rg * (gi - xi);
+            *vi = w * *vi + rp * (pi - xi) + rg * (gi - xi);
         }
     }
 
