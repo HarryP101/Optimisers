@@ -2,6 +2,7 @@ use particle_swarm::PSConfig;
 use particle_swarm::SearchSpace;
 use common::ClientMerit;
 use common::ClientTermination;
+use std::sync::Arc;
 
 mod common;
 
@@ -13,7 +14,7 @@ fn it_works() {
     let lower = vec![-1.0];
     let upper = vec![1.0];
     let search_space = SearchSpace::new(lower, upper);
-    let merit = Box::new(ClientMerit);
+    let merit = Arc::new(ClientMerit);
     let termination = Box::new(ClientTermination);
 
     let config = PSConfig::new(num_iters, num_particles, num_dimensions, search_space, merit, termination);

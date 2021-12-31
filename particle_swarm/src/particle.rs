@@ -1,20 +1,18 @@
 use crate::SearchSpace;
 use rand::Rng;
 use itertools::izip;
-use std::cell::RefCell;
-use std::rc::Rc;
 
 pub struct Particle {
     pub position: Vec<f64>,
     velocity: Vec<f64>,
     local_best: Vec<f64>,
-    global_best: Rc<RefCell<Vec<f64>>>,
+    global_best: Vec<f64>,
     local_best_merit: f64,
 }
 
 impl Particle {
     pub fn new(num_dimensions: usize, search_space: &SearchSpace,
-                global_best: Rc<RefCell<Vec<f64>>>) -> Particle {
+                global_best: &Vec<f64>) -> Particle {
 
         // Initialise position with uniformly distributed vector in search_space
         let mut position: Vec<f64> = Vec::with_capacity(num_dimensions);
@@ -35,7 +33,7 @@ impl Particle {
         }
 
         let local_best = position.clone();
-        let global_best = Rc::clone(&global_best);
+        let global_best = global_best.clone();
 
         let local_best_merit = f64::INFINITY;
 
@@ -50,17 +48,18 @@ impl Particle {
     }
 
     pub fn update_velocity(&mut self) {
-        for (xi, vi, pi, gi) in izip!(&self.position,
-                                    &mut self.velocity,
-                                    &self.local_best,
-                                    &*self.global_best.borrow())
-        {
+        izip!(&self.position,
+            &mut self.velocity,
+            &self.local_best,
+            &self.global_best).into_iter().for_each(|(xi, vi, pi, gi)| {
+
             let rp: f64 = rand::thread_rng().gen_range(0.0..1.0);
             let rg: f64 = rand::thread_rng().gen_range(0.0..1.0);
             let w: f64 = 0.9;
 
             *vi = w * *vi + rp * (pi - xi) + rg * (gi - xi);
-        }
+
+        });
     }
 
     pub fn get_best_merit(&self) -> f64 {
@@ -86,9 +85,8 @@ mod tests {
         let lower = vec![0.0; 3];
         let upper = vec![1.0; 3];
         let search_space = SearchSpace::new(lower, upper);
-        let best_swarm_position: Rc<RefCell<Vec<f64>>> 
-            = Rc::new(RefCell::new(vec![0.0, 0.0, 0.0]));
-        let particle = Particle::new(num_dimensions, &search_space, best_swarm_position);
+        let best_swarm_position: Vec<f64> = vec![0.0, 0.0, 0.0];
+        let particle = Particle::new(num_dimensions, &search_space, &best_swarm_position);
         let expected = 3;
         assert_eq!(expected, particle.position.len());
     }
@@ -99,9 +97,8 @@ mod tests {
         let lower = vec![0.0; 3];
         let upper = vec![1.0; 3];
         let search_space = SearchSpace::new(lower, upper);
-        let best_swarm_position: Rc<RefCell<Vec<f64>>> 
-            = Rc::new(RefCell::new(vec![0.0, 0.0, 0.0]));
-        let mut particle = Particle::new(num_dimensions, &search_space, best_swarm_position);
+        let best_swarm_position: Vec<f64> = vec![0.0, 0.0, 0.0];
+        let mut particle = Particle::new(num_dimensions, &search_space, &best_swarm_position);
         let expected = 3;
         
         particle.update_position();
@@ -115,9 +112,8 @@ mod tests {
         let lower = vec![0.0; 3];
         let upper = vec![1.0; 3];
         let search_space = SearchSpace::new(lower, upper);
-        let best_swarm_position: Rc<RefCell<Vec<f64>>> 
-            = Rc::new(RefCell::new(vec![0.0, 0.0, 0.0]));
-        let mut particle = Particle::new(num_dimensions, &search_space, best_swarm_position);
+        let best_swarm_position: Vec<f64> = vec![0.0, 0.0, 0.0];
+        let mut particle = Particle::new(num_dimensions, &search_space, &best_swarm_position);
         let expected = 3;
         
         particle.update_velocity();
