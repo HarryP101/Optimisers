@@ -73,29 +73,28 @@ pub fn run(config: PSConfig) -> Result<f64, Box<dyn Error>> {
             optimum.best_swarm_position = particle.position.clone();
             optimum.best_swarm_merit = merit;
         }
-        swarm.push(Arc::new(Mutex::new(particle)));
+        swarm.push(particle);
     }
     
-    for _ in 0..config.num_iters {
+    // Spawn a set of threads
+    let mut handles: Vec<_> = Vec::new();
 
-        // Spawn a set of threads
-        let mut handles: Vec<_> = Vec::new();
+    // Create a thread and closure for each particle
+    // TODO: Create a thread pool which is shared by all the particles
+    for mut particle in swarm.into_iter() {
 
-        // Create a thread and closure for each particle
-        for particle in swarm.iter().cloned() {
+        let optimum = Arc::clone(&optimum);
 
-            let optimum = Arc::clone(&optimum);
+        let merit_function = Arc::clone(&config.merit);
 
-            let merit_function = Arc::clone(&config.merit);
+        let handle = thread::spawn(move || {
 
-            let handle = thread::spawn(move || {
-
-                let mut particle = particle.lock().unwrap();
+            for _ in 0..config.num_iters {
 
                 particle.update_position();
 
                 particle.update_velocity();
-
+    
                 let merit = merit_function.calculate(&particle.position);
         
                 if merit < particle.get_best_merit() {
@@ -103,29 +102,30 @@ pub fn run(config: PSConfig) -> Result<f64, Box<dyn Error>> {
                     particle.set_local_best_position();
         
                     let mut optimum = optimum.lock().unwrap();
-
+    
                     if particle.get_best_merit() < optimum.best_swarm_merit {
                         optimum.best_swarm_merit = particle.get_best_merit();
                         optimum.best_swarm_position = particle.position.clone();
                     }
                 }
-            });           
-            
-            handles.push(handle);
-        }
-
-        // Wait for each thread to finish
-        for handle in handles {
-            handle.join().unwrap();
-        }
-
-        let merit = config.merit.calculate(&optimum.lock().unwrap().best_swarm_position);
-        if config.termination.should_stop(merit) {
-            return Ok(merit)
-        }
+            }
+        });           
+        
+        handles.push(handle);
     }
 
+    // Wait for each thread to finish
+    for handle in handles {
+        handle.join().unwrap();
+    }
+
+    // TODO: This should go in a thread
     let merit = config.merit.calculate(&optimum.lock().unwrap().best_swarm_position);
+    if config.termination.should_stop(merit) {
+        return Ok(merit)
+    }
+
+    let merit = optimum.lock().unwrap().best_swarm_merit;
     Ok(merit)
 }
 
