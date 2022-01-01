@@ -11,13 +11,14 @@ fn it_works() {
     let num_iters = 10000;
     let num_particles = 10;
     let num_dimensions = 1;
+    let num_threads = 5;
     let lower = vec![-1.0];
     let upper = vec![1.0];
     let search_space = SearchSpace::new(lower, upper);
     let merit = Arc::new(ClientMerit);
-    let termination = Box::new(ClientTermination);
+    let termination = Arc::new(ClientTermination);
 
-    let config = PSConfig::new(num_iters, num_particles, num_dimensions, search_space, merit, termination);
+    let config = PSConfig::new(num_iters, num_particles, num_dimensions, num_threads, search_space, merit, termination);
 
     let result = match particle_swarm::run(config) {
         Ok(value) => value,

@@ -21,9 +21,10 @@ pub struct PSConfig {
     num_iters: u32,
     num_particles: usize,
     num_dimensions: usize,
+    num_threads: usize,
     search_space: SearchSpace,
     merit: Arc<dyn MeritFunction + Send + Sync>,
-    termination: Box<dyn Termination>,
+    termination: Arc<dyn Termination + Send + Sync>,
 }
 
 struct Optimum {
@@ -35,11 +36,12 @@ impl PSConfig {
     pub fn new(num_iters: u32,
         num_particles: usize,
         num_dimensions: usize,
+        num_threads: usize,
         search_space: SearchSpace,
         merit: Arc<dyn MeritFunction + Send + Sync>,
-        termination: Box<dyn Termination>) -> PSConfig {
+        termination: Arc<dyn Termination + Send + Sync>) -> PSConfig {
 
-        PSConfig { num_iters, num_particles, num_dimensions, search_space, merit, termination }
+        PSConfig { num_iters, num_particles, num_dimensions, num_threads, search_space, merit, termination }
     }
 }
 
@@ -56,6 +58,44 @@ pub fn run(config: PSConfig) -> Result<f64, Box<dyn Error>> {
 
     // Shared ownership of best swarm position and merit across entire swarm
     let optimum = Arc::new(Mutex::new(Optimum::new(config.num_dimensions)));
+
+    // Create swarm of particles
+    let swarm = initialise(&config, &optimum);
+
+    // Create a thread pool
+    let thread_pool = ThreadPool::new(config.num_threads);
+
+    // Iterate over all particles in the swarm
+    for mut particle in swarm.into_iter() {
+
+        let optimum = Arc::clone(&optimum);
+
+        let merit_function = Arc::clone(&config.merit);
+
+        let termination_function = Arc::clone(&config.termination);
+
+        let iterate = move || {
+
+            for _ in 0..config.num_iters {
+
+                iterate(&mut particle, &merit_function, &optimum);
+
+                let merit = merit_function.calculate(&optimum.lock().unwrap().best_swarm_position);
+
+                if termination_function.should_stop(merit) {
+                    break;
+                }
+            }
+        };
+
+        thread_pool.execute(iterate);
+    }
+
+    let merit = optimum.lock().unwrap().best_swarm_merit;
+    Ok(merit)
+}
+
+fn initialise(config: &PSConfig, optimum: &Arc<Mutex<Optimum>>) -> Vec<Particle> {
 
     let mut swarm = Vec::with_capacity(config.num_particles);
 
@@ -76,57 +116,29 @@ pub fn run(config: PSConfig) -> Result<f64, Box<dyn Error>> {
         }
         swarm.push(particle);
     }
-    
-    // Spawn a set of threads
-    //let mut handles: Vec<_> = Vec::new();
+    swarm
+}
 
-    let num_threads = 5;
+fn iterate(particle: &mut Particle, merit_function: &Arc<dyn MeritFunction + Send + Sync>, optimum: &Arc<Mutex<Optimum>>) {
 
-    let thread_pool = ThreadPool::new(num_threads);
+    particle.update_position();
 
-    // Create a thread and closure for each particle
-    // TODO: Create a thread pool which is shared by all the particles
-    for mut particle in swarm.into_iter() {
+    particle.update_velocity();
 
-        let optimum = Arc::clone(&optimum);
+    let merit = merit_function.calculate(&particle.position);
 
-        let merit_function = Arc::clone(&config.merit);
+    // Update local and global best merits if needed
+    if merit < particle.get_best_merit() {
+        particle.set_best_merit(merit);
+        particle.set_local_best_position();
 
-        let iterate = move || {
+        let mut optimum = optimum.lock().unwrap();
 
-            for _ in 0..config.num_iters {
-
-                particle.update_position();
-
-                particle.update_velocity();
-    
-                let merit = merit_function.calculate(&particle.position);
-        
-                if merit < particle.get_best_merit() {
-                    particle.set_best_merit(merit);
-                    particle.set_local_best_position();
-        
-                    let mut optimum = optimum.lock().unwrap();
-    
-                    if particle.get_best_merit() < optimum.best_swarm_merit {
-                        optimum.best_swarm_merit = particle.get_best_merit();
-                        optimum.best_swarm_position = particle.position.clone();
-                    }
-                }
-            }
-        };
-
-        thread_pool.execute(iterate);
+        if particle.get_best_merit() < optimum.best_swarm_merit {
+            optimum.best_swarm_merit = particle.get_best_merit();
+            optimum.best_swarm_position = particle.position.clone();
+        }
     }
-    
-    // TODO: This should go in a thread
-    let merit = config.merit.calculate(&optimum.lock().unwrap().best_swarm_position);
-    if config.termination.should_stop(merit) {
-        return Ok(merit)
-    }
-
-    let merit = optimum.lock().unwrap().best_swarm_merit;
-    Ok(merit)
 }
 
 pub trait MeritFunction {

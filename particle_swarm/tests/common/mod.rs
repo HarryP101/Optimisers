@@ -13,7 +13,7 @@ impl MeritFunction for ClientMerit {
 
 impl Termination for ClientTermination {
     fn should_stop(&self, merit: f64) -> bool {
-        if merit == 1.0 {
+        if merit < 1.1 && merit > 0.9 {
             true
         }
         else {
