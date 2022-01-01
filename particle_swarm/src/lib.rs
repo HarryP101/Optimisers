@@ -1,9 +1,10 @@
 use std::error::Error;
 use crate::particle::Particle;
+use crate::thread_pool::ThreadPool;
 use std::sync::{Arc, Mutex};
-use std::thread;
 
 mod particle;
+mod thread_pool;
 
 pub struct SearchSpace {
     lower: Vec<f64>,
@@ -77,7 +78,11 @@ pub fn run(config: PSConfig) -> Result<f64, Box<dyn Error>> {
     }
     
     // Spawn a set of threads
-    let mut handles: Vec<_> = Vec::new();
+    //let mut handles: Vec<_> = Vec::new();
+
+    let num_threads = 5;
+
+    let thread_pool = ThreadPool::new(num_threads);
 
     // Create a thread and closure for each particle
     // TODO: Create a thread pool which is shared by all the particles
@@ -87,7 +92,7 @@ pub fn run(config: PSConfig) -> Result<f64, Box<dyn Error>> {
 
         let merit_function = Arc::clone(&config.merit);
 
-        let handle = thread::spawn(move || {
+        let iterate = move || {
 
             for _ in 0..config.num_iters {
 
@@ -109,16 +114,11 @@ pub fn run(config: PSConfig) -> Result<f64, Box<dyn Error>> {
                     }
                 }
             }
-        });           
-        
-        handles.push(handle);
-    }
+        };
 
-    // Wait for each thread to finish
-    for handle in handles {
-        handle.join().unwrap();
+        thread_pool.execute(iterate);
     }
-
+    
     // TODO: This should go in a thread
     let merit = config.merit.calculate(&optimum.lock().unwrap().best_swarm_position);
     if config.termination.should_stop(merit) {
