@@ -4,15 +4,16 @@ use itertools::izip;
 
 pub struct Particle {
     pub position: Vec<f64>,
+    pub local_best_merit: f64,
     velocity: Vec<f64>,
     local_best: Vec<f64>,
     global_best: Vec<f64>,
-    pub local_best_merit: f64,
+    weight: f64,
 }
 
 impl Particle {
     pub fn new(num_dimensions: usize, search_space: &SearchSpace,
-                global_best: &Vec<f64>) -> Particle {
+                global_best: &Vec<f64>, weight: f64) -> Particle {
 
         // Initialise position with uniformly distributed vector in search_space
         let mut position: Vec<f64> = Vec::with_capacity(num_dimensions);
@@ -37,7 +38,7 @@ impl Particle {
 
         let local_best_merit = f64::INFINITY;
 
-        Particle { position, velocity, local_best, global_best, local_best_merit }
+        Particle { position, velocity, local_best, global_best, local_best_merit, weight }
     }
 
     pub fn update_position(&mut self) {
@@ -47,18 +48,13 @@ impl Particle {
         }
     }
 
-    pub fn update_velocity(&mut self) {
+    pub fn update_velocity(&mut self, cognitive_coeff: f64, social_coeff: f64) {
         izip!(&self.position,
             &mut self.velocity,
             &self.local_best,
             &self.global_best).into_iter().for_each(|(xi, vi, pi, gi)| {
 
-            let rp: f64 = rand::thread_rng().gen_range(0.0..1.0);
-            let rg: f64 = rand::thread_rng().gen_range(0.0..1.0);
-            let w: f64 = 1.0;
-
-            *vi = w * *vi + rp * (pi - xi) + rg * (gi - xi);
-
+            *vi = self.weight * *vi + cognitive_coeff * (pi - xi) + social_coeff * (gi - xi);
         });
     }
 
@@ -78,7 +74,8 @@ mod tests {
         let upper = vec![1.0; 3];
         let search_space = SearchSpace::new(lower, upper);
         let best_swarm_position: Vec<f64> = vec![0.0, 0.0, 0.0];
-        let particle = Particle::new(num_dimensions, &search_space, &best_swarm_position);
+        let weight = 1.0;
+        let particle = Particle::new(num_dimensions, &search_space, &best_swarm_position, weight);
         let expected = 3;
         assert_eq!(expected, particle.position.len());
     }
@@ -90,7 +87,8 @@ mod tests {
         let upper = vec![1.0; 3];
         let search_space = SearchSpace::new(lower, upper);
         let best_swarm_position: Vec<f64> = vec![0.0, 0.0, 0.0];
-        let mut particle = Particle::new(num_dimensions, &search_space, &best_swarm_position);
+        let weight = 1.0;
+        let mut particle = Particle::new(num_dimensions, &search_space, &best_swarm_position, weight);
         let expected = 3;
         
         particle.update_position();
@@ -105,10 +103,13 @@ mod tests {
         let upper = vec![1.0; 3];
         let search_space = SearchSpace::new(lower, upper);
         let best_swarm_position: Vec<f64> = vec![0.0, 0.0, 0.0];
-        let mut particle = Particle::new(num_dimensions, &search_space, &best_swarm_position);
+        let weight = 1.0;
+        let mut particle = Particle::new(num_dimensions, &search_space, &best_swarm_position, weight);
         let expected = 3;
-        
-        particle.update_velocity();
+        let cognitive_coeff = 0.8;
+        let social_coeff = 0.7;
+
+        particle.update_velocity(cognitive_coeff, social_coeff);
         particle.update_position();
 
         assert_eq!(expected, particle.position.len());

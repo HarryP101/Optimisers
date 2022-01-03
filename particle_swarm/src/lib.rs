@@ -23,6 +23,9 @@ pub struct PSConfigMultiThread {
     num_dimensions: usize,
     num_threads: usize,
     search_space: SearchSpace,
+    particle_weight: f64,
+    cognitive_coeff: f64,
+    social_coeff: f64,
     merit: Arc<dyn MeritFunction + Send + Sync>,
     termination: Arc<dyn Termination + Send + Sync>,
 }
@@ -32,6 +35,9 @@ pub struct PSConfigSingleThread {
     num_particles: usize,
     num_dimensions: usize,
     search_space: SearchSpace,
+    particle_weight: f64,
+    cognitive_coeff: f64,
+    social_coeff: f64,
     merit: Box<dyn MeritFunction>,
     termination: Box<dyn Termination>,
 }
@@ -47,10 +53,14 @@ impl PSConfigMultiThread {
         num_dimensions: usize,
         num_threads: usize,
         search_space: SearchSpace,
+        particle_weight: f64,
+        cognitive_coeff: f64,
+        social_coeff: f64,
         merit: Arc<dyn MeritFunction + Send + Sync>,
         termination: Arc<dyn Termination + Send + Sync>) -> PSConfigMultiThread {
 
-        PSConfigMultiThread { num_iters, num_particles, num_dimensions, num_threads, search_space, merit, termination }
+        PSConfigMultiThread { num_iters, num_particles, num_dimensions, num_threads,
+            search_space, particle_weight, cognitive_coeff, social_coeff, merit, termination }
     }
 }
 
@@ -59,10 +69,14 @@ impl PSConfigSingleThread {
         num_particles: usize,
         num_dimensions: usize,
         search_space: SearchSpace,
+        particle_weight: f64,
+        cognitive_coeff: f64,
+        social_coeff: f64,
         merit: Box<dyn MeritFunction>,
         termination: Box<dyn Termination>) -> PSConfigSingleThread {
 
-        PSConfigSingleThread { num_iters, num_particles, num_dimensions, search_space, merit, termination }
+        PSConfigSingleThread { num_iters, num_particles, num_dimensions, search_space,
+            particle_weight, cognitive_coeff, social_coeff, merit, termination }
     }
 }
 

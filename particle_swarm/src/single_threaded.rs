@@ -1,4 +1,5 @@
 use std::error::Error;
+use rand::Rng;
 use crate::particle::Particle;
 use crate::{PSConfigSingleThread, Optimum, MeritFunction};
 
@@ -15,7 +16,8 @@ pub fn run(config: PSConfigSingleThread) -> Result<Optimum, Box<dyn Error>> {
         // Iterate over all particles in the swarm
         for particle in &mut swarm {
 
-            iterate(particle, &config.merit, &mut optimum);
+            iterate(particle, config.cognitive_coeff, 
+                config.social_coeff, &config.merit, &mut optimum);
 
             let merit = optimum.best_swarm_merit;
 
@@ -37,7 +39,8 @@ fn initialise(config: &PSConfigSingleThread, optimum: &mut Optimum) -> Vec<Parti
 
         let particle = Particle::new(config.num_dimensions,
             &config.search_space,
-            &optimum.best_swarm_position);
+            &optimum.best_swarm_position,
+            config.particle_weight);
 
         let merit = config.merit.calculate(&particle.position);
 
@@ -50,11 +53,15 @@ fn initialise(config: &PSConfigSingleThread, optimum: &mut Optimum) -> Vec<Parti
     swarm
 }
 
-fn iterate(particle: &mut Particle, merit_function: &Box<dyn MeritFunction>, optimum: &mut Optimum) {
+fn iterate(particle: &mut Particle, cognitive_coeff: f64,
+    social_coeff: f64, merit_function: &Box<dyn MeritFunction>, optimum: &mut Optimum) {
 
     particle.update_position();
 
-    particle.update_velocity();
+    let rp: f64 = rand::thread_rng().gen_range(0.0..1.0);
+    let rg: f64 = rand::thread_rng().gen_range(0.0..1.0);
+
+    particle.update_velocity(rp * cognitive_coeff, rg * social_coeff);
 
     let merit = merit_function.calculate(&particle.position);
 

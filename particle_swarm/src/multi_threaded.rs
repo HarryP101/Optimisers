@@ -1,5 +1,6 @@
 use std::error::Error;
 use std::sync::{Arc, Mutex};
+use rand::Rng;
 use crate::{particle::Particle, thread_pool::ThreadPool};
 use crate::{PSConfigMultiThread, Optimum, MeritFunction};
 
@@ -27,7 +28,8 @@ pub fn run(config: PSConfigMultiThread) -> Result<Optimum, Box<dyn Error>> {
 
             for _ in 0..config.num_iters {
 
-                iterate(&mut particle, &merit_function, &optimum);
+                iterate(&mut particle, config.cognitive_coeff,
+                    config.social_coeff, &merit_function, &optimum);
 
                 let merit = optimum.lock().unwrap().best_swarm_merit;
 
@@ -43,7 +45,7 @@ pub fn run(config: PSConfigMultiThread) -> Result<Optimum, Box<dyn Error>> {
     let opt = &*optimum.lock().unwrap();
 
     let result = Optimum { best_swarm_merit: opt.best_swarm_merit,
-                                    best_swarm_position: opt.best_swarm_position.clone() };
+                        best_swarm_position: opt.best_swarm_position.clone() };
     Ok(result)
 }
 
@@ -58,7 +60,8 @@ fn initialise(config: &PSConfigMultiThread, optimum: &Arc<Mutex<Optimum>>) -> Ve
 
         let particle = Particle::new(config.num_dimensions,
             &config.search_space,
-            &optimum.best_swarm_position);
+            &optimum.best_swarm_position, 
+            config.particle_weight);
 
         let merit = config.merit.calculate(&particle.position);
 
@@ -71,11 +74,15 @@ fn initialise(config: &PSConfigMultiThread, optimum: &Arc<Mutex<Optimum>>) -> Ve
     swarm
 }
 
-fn iterate(particle: &mut Particle, merit_function: &Arc<dyn MeritFunction + Send + Sync>, optimum: &Arc<Mutex<Optimum>>) {
+fn iterate(particle: &mut Particle, cognitive_coeff: f64, social_coeff: f64,
+    merit_function: &Arc<dyn MeritFunction + Send + Sync>, optimum: &Arc<Mutex<Optimum>>) {
 
     particle.update_position();
 
-    particle.update_velocity();
+    let rp: f64 = rand::thread_rng().gen_range(0.0..1.0);
+    let rg: f64 = rand::thread_rng().gen_range(0.0..1.0);
+
+    particle.update_velocity(rp * cognitive_coeff, rg * social_coeff);
 
     let merit = merit_function.calculate(&particle.position);
 
