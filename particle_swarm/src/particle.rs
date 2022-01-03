@@ -7,7 +7,7 @@ pub struct Particle {
     velocity: Vec<f64>,
     local_best: Vec<f64>,
     global_best: Vec<f64>,
-    local_best_merit: f64,
+    pub local_best_merit: f64,
 }
 
 impl Particle {
@@ -55,19 +55,11 @@ impl Particle {
 
             let rp: f64 = rand::thread_rng().gen_range(0.0..1.0);
             let rg: f64 = rand::thread_rng().gen_range(0.0..1.0);
-            let w: f64 = 0.9;
+            let w: f64 = 1.0;
 
             *vi = w * *vi + rp * (pi - xi) + rg * (gi - xi);
 
         });
-    }
-
-    pub fn get_best_merit(&self) -> f64 {
-        self.local_best_merit
-    }
-
-    pub fn set_best_merit(&mut self, merit: f64) {
-        self.local_best_merit = merit;
     }
 
     pub fn set_local_best_position(&mut self) {
